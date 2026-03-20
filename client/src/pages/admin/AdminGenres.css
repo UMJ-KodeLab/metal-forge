@@ -1,0 +1,38 @@
+.admin-genres-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.genre-slug {
+  background: var(--bg-hover);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.admin-modal-sm {
+  max-width: 450px;
+}
+
+.genre-slug-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.genre-slug-preview code {
+  color: var(--accent-light);
+  font-family: monospace;
+}

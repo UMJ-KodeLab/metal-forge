@@ -1,0 +1,130 @@
+.admin-orders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-orders-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-orders-filter label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.admin-orders-filter select {
+  width: auto;
+  min-width: 150px;
+}
+
+/* Client info */
+.order-client {
+  display: flex;
+  flex-direction: column;
+}
+
+.order-client small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Status select */
+.status-select {
+  width: auto;
+  min-width: 120px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* Expanded row */
+.row-expanded {
+  background: var(--bg-hover);
+}
+
+.order-details-row td {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--accent-dark) !important;
+}
+
+.order-details {
+  padding: 20px 24px;
+  background: var(--bg-secondary);
+}
+
+.order-details h4 {
+  font-family: var(--font-display);
+  color: var(--metal-silver);
+  font-size: 1rem;
+  margin-bottom: 14px;
+}
+
+/* Order items table */
+.order-items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-items-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.order-items-table td {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.order-items-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.order-item-product {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-item-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* Badge colors (extend global) */
+.badge-pending {
+  background: var(--warning);
+  color: #000;
+}
+.badge-paid {
+  background: var(--success);
+  color: #000;
+}
+.badge-shipped {
+  background: #0074d9;
+  color: #fff;
+}
+.badge-delivered {
+  background: var(--metal-silver);
+  color: #000;
+}
+.badge-cancelled {
+  background: var(--danger);
+  color: #fff;
+}
