@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaBox, FaShoppingBag, FaDollarSign, FaExclamationTriangle } from 'react-icons/fa';
-import api from '../../services/api';
+import api, { API_BASE } from '../../services/api';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -128,7 +128,7 @@ export default function Dashboard() {
             {stats.lowStockProducts.map((product) => (
               <div className="dash-low-stock-item" key={product.id}>
                 <img
-                  src={product.coverImage || '/placeholder.png'}
+                  src={product.coverImage ? `${API_BASE}${product.coverImage}` : '/placeholder.png'}
                   alt={product.title}
                   className="dash-low-stock-img"
                 />

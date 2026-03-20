@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { API_BASE } from '../services/api';
 import { FaTrash, FaMinus, FaPlus, FaShoppingCart, FaMusic } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import './CartPage.css';
@@ -52,7 +53,7 @@ export default function CartPage() {
                 <div className="cart-page__item-image">
                   {item.Product?.coverImage ? (
                     <img
-                      src={item.Product.coverImage}
+                      src={`${API_BASE}${item.Product.coverImage}`}
                       alt={item.Product.title}
                     />
                   ) : (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import api from '../../services/api';
+import api, { API_BASE } from '../../services/api';
 import './AdminOrders.css';
 
 const STATUS_OPTIONS = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
@@ -155,7 +155,7 @@ export default function AdminOrders() {
                                     <td>
                                       <div className="order-item-product">
                                         <img
-                                          src={item.product?.coverImage || '/placeholder.png'}
+                                          src={item.product?.coverImage ? `${API_BASE}${item.product.coverImage}` : '/placeholder.png'}
                                           alt={item.product?.title || 'Produto'}
                                           className="order-item-thumb"
                                         />

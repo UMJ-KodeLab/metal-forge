@@ -4,7 +4,7 @@ import { FaShoppingCart, FaHeart, FaRegHeart, FaMusic } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api';
+import api, { API_BASE } from '../../services/api';
 import './ProductCard.css';
 
 export default function ProductCard({ product }) {
@@ -64,7 +64,7 @@ export default function ProductCard({ product }) {
       <div className="product-card__image-wrapper">
         {product.coverImage ? (
           <img
-            src={product.coverImage}
+            src={`${API_BASE}${product.coverImage}`}
             alt={`${product.title} - ${product.artist}`}
             className="product-card__image"
           />

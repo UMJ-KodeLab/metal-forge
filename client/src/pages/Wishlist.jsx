@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaShoppingCart, FaTrash, FaMusic } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import api from '../services/api';
+import api, { API_BASE } from '../services/api';
 import { useCart } from '../context/CartContext';
 import './Wishlist.css';
 
@@ -84,7 +84,7 @@ export default function Wishlist() {
                 <Link to={`/product/${item.Product?.id}`}>
                   {item.Product?.coverImage ? (
                     <img
-                      src={item.Product.coverImage}
+                      src={`${API_BASE}${item.Product.coverImage}`}
                       alt={item.Product.title}
                       className="wishlist__image"
                     />

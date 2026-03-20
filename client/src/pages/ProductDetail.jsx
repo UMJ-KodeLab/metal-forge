@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { FaShoppingCart, FaHeart, FaMusic, FaMinus, FaPlus } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import api from '../services/api';
+import api, { API_BASE } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import './ProductDetail.css';
@@ -95,7 +95,7 @@ export default function ProductDetail() {
           <div className="product-detail__image-section">
             {product.coverImage ? (
               <img
-                src={product.coverImage}
+                src={`${API_BASE}${product.coverImage}`}
                 alt={`${product.title} - ${product.artist}`}
                 className="product-detail__image"
               />

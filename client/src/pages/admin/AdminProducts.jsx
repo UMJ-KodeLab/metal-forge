@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import api from '../../services/api';
+import api, { API_BASE } from '../../services/api';
 import './AdminProducts.css';
 
 const emptyForm = {
@@ -189,7 +189,7 @@ export default function AdminProducts() {
                 <tr key={product.id}>
                   <td>
                     <img
-                      src={product.coverImage || '/placeholder.png'}
+                      src={product.coverImage ? `${API_BASE}${product.coverImage}` : '/placeholder.png'}
                       alt={product.title}
                       className="admin-products-thumb"
                     />

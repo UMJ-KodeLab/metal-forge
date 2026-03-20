@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCreditCard, FaMusic } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import api from '../services/api';
+import api, { API_BASE } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import './Checkout.css';
@@ -71,7 +71,7 @@ export default function Checkout() {
                 <div key={item.id} className="checkout__item">
                   <div className="checkout__item-image">
                     {item.Product?.coverImage ? (
-                      <img src={item.Product.coverImage} alt="" />
+                      <img src={`${API_BASE}${item.Product.coverImage}`} alt="" />
                     ) : (
                       <div className="checkout__item-placeholder">
                         <FaMusic />
