@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
+const http = require('http');
 const { Sequelize } = require('sequelize');
 const dbConfig = require('../src/config/database');
 
@@ -15,114 +17,70 @@ if (config.dialect === 'sqlite') {
   });
 }
 
-const GENRE_COLORS = {
-  'Thrash Metal':       { bg: '#1a0a0a', accent: '#cc0000', text: '#ff3333' },
-  'Death Metal':        { bg: '#0a0a0a', accent: '#8b0000', text: '#cc3333' },
-  'Black Metal':        { bg: '#0a0a0a', accent: '#333333', text: '#999999' },
-  'Power Metal':        { bg: '#0a0a1a', accent: '#0044cc', text: '#4488ff' },
-  'Doom Metal':         { bg: '#0a0a05', accent: '#4a3500', text: '#aa8833' },
-  'Speed Metal':        { bg: '#1a0a00', accent: '#cc6600', text: '#ff8833' },
-  'Heavy Metal':        { bg: '#0a0a10', accent: '#444488', text: '#8888cc' },
-  'Metalcore':          { bg: '#0a100a', accent: '#006633', text: '#33cc66' },
-  'Symphonic Metal':    { bg: '#100a1a', accent: '#6600aa', text: '#aa44ff' },
-  'Progressive Metal':  { bg: '#0a1015', accent: '#006688', text: '#33aacc' },
-  'Folk Metal':         { bg: '#0f0a05', accent: '#665500', text: '#bbaa44' },
-  'Nu Metal':           { bg: '#0f0505', accent: '#883344', text: '#cc5566' },
-};
-
-function getPattern(index) {
-  const patterns = [
-    // Diagonal lines
-    `<line x1="0" y1="0" x2="400" y2="400" stroke="ACCENT" stroke-width="0.5" opacity="0.15"/>
-     <line x1="50" y1="0" x2="450" y2="400" stroke="ACCENT" stroke-width="0.5" opacity="0.1"/>
-     <line x1="-50" y1="0" x2="350" y2="400" stroke="ACCENT" stroke-width="0.5" opacity="0.1"/>
-     <line x1="100" y1="0" x2="500" y2="400" stroke="ACCENT" stroke-width="0.3" opacity="0.08"/>
-     <line x1="-100" y1="0" x2="300" y2="400" stroke="ACCENT" stroke-width="0.3" opacity="0.08"/>`,
-    // Circle
-    `<circle cx="200" cy="200" r="120" fill="none" stroke="ACCENT" stroke-width="1" opacity="0.15"/>
-     <circle cx="200" cy="200" r="80" fill="none" stroke="ACCENT" stroke-width="0.5" opacity="0.1"/>
-     <circle cx="200" cy="200" r="160" fill="none" stroke="ACCENT" stroke-width="0.3" opacity="0.08"/>`,
-    // Cross
-    `<line x1="200" y1="40" x2="200" y2="360" stroke="ACCENT" stroke-width="1" opacity="0.12"/>
-     <line x1="40" y1="200" x2="360" y2="200" stroke="ACCENT" stroke-width="1" opacity="0.12"/>`,
-    // Diamond
-    `<polygon points="200,40 360,200 200,360 40,200" fill="none" stroke="ACCENT" stroke-width="1" opacity="0.15"/>
-     <polygon points="200,80 320,200 200,320 80,200" fill="none" stroke="ACCENT" stroke-width="0.5" opacity="0.1"/>`,
-    // Triangle
-    `<polygon points="200,50 370,350 30,350" fill="none" stroke="ACCENT" stroke-width="1" opacity="0.15"/>
-     <polygon points="200,100 320,320 80,320" fill="none" stroke="ACCENT" stroke-width="0.5" opacity="0.1"/>`,
-    // Star burst
-    `<line x1="200" y1="30" x2="200" y2="370" stroke="ACCENT" stroke-width="0.5" opacity="0.12"/>
-     <line x1="30" y1="200" x2="370" y2="200" stroke="ACCENT" stroke-width="0.5" opacity="0.12"/>
-     <line x1="60" y1="60" x2="340" y2="340" stroke="ACCENT" stroke-width="0.5" opacity="0.1"/>
-     <line x1="340" y1="60" x2="60" y2="340" stroke="ACCENT" stroke-width="0.5" opacity="0.1"/>`,
-  ];
-  return patterns[index % patterns.length];
+function fetchUrl(url, maxRedirects = 5) {
+  return new Promise((resolve, reject) => {
+    if (maxRedirects <= 0) return reject(new Error('Too many redirects'));
+    const client = url.startsWith('https') ? https : http;
+    client.get(url, { headers: { 'User-Agent': 'MetalForge/1.0 (metal-forge-ecommerce)' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        let redirectUrl = res.headers.location;
+        if (redirectUrl.startsWith('/')) {
+          const u = new URL(url);
+          redirectUrl = `${u.protocol}//${u.host}${redirectUrl}`;
+        }
+        return fetchUrl(redirectUrl, maxRedirects - 1).then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) {
+        res.resume();
+        return reject(new Error(`HTTP ${res.statusCode}`));
+      }
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
+      res.on('error', reject);
+    }).on('error', reject);
+  });
 }
 
-function escapeXml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+function fetchJson(url) {
+  return fetchUrl(url).then(buf => JSON.parse(buf.toString()));
 }
 
-function wrapText(text, maxChars) {
-  const words = text.split(' ');
-  const lines = [];
-  let current = '';
-  for (const word of words) {
-    if ((current + ' ' + word).trim().length > maxChars && current) {
-      lines.push(current.trim());
-      current = word;
-    } else {
-      current = (current + ' ' + word).trim();
+async function searchMusicBrainzRelease(artist, title) {
+  const query = encodeURIComponent(`release:"${title}" AND artist:"${artist}"`);
+  const url = `https://musicbrainz.org/ws/2/release/?query=${query}&fmt=json&limit=5`;
+  try {
+    const data = await fetchJson(url);
+    if (data.releases && data.releases.length > 0) {
+      // Prefer releases with cover art
+      for (const release of data.releases) {
+        if (release.id) return release.id;
+      }
+    }
+  } catch (e) {
+    console.log(`    MusicBrainz search failed: ${e.message}`);
+  }
+  return null;
+}
+
+async function downloadCoverArt(releaseId) {
+  const url = `https://coverartarchive.org/release/${releaseId}/front-500`;
+  try {
+    const imageBuffer = await fetchUrl(url);
+    return imageBuffer;
+  } catch (e) {
+    // Try without size spec
+    try {
+      const imageBuffer = await fetchUrl(`https://coverartarchive.org/release/${releaseId}/front`);
+      return imageBuffer;
+    } catch (e2) {
+      return null;
     }
   }
-  if (current) lines.push(current.trim());
-  return lines;
 }
 
-function generateSVG(artist, title, year, genre, index) {
-  const colors = GENRE_COLORS[genre] || GENRE_COLORS['Heavy Metal'];
-  const pattern = getPattern(index).replace(/ACCENT/g, colors.accent);
-
-  const artistLines = wrapText(artist.toUpperCase(), 18);
-  const titleLines = wrapText(title, 20);
-
-  const artistY = 130 - (artistLines.length - 1) * 14;
-  const titleY = 220 - (titleLines.length - 1) * 16;
-
-  const artistTextEls = artistLines.map((line, i) =>
-    `<text x="200" y="${artistY + i * 28}" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="22" font-weight="900" fill="${colors.text}" letter-spacing="3">${escapeXml(line)}</text>`
-  ).join('\n    ');
-
-  const titleTextEls = titleLines.map((line, i) =>
-    `<text x="200" y="${titleY + i * 32}" text-anchor="middle" font-family="Georgia, serif" font-size="26" font-weight="700" fill="#e0e0e0" font-style="italic">${escapeXml(line)}</text>`
-  ).join('\n    ');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
-  <defs>
-    <radialGradient id="bg${index}" cx="50%" cy="40%" r="70%">
-      <stop offset="0%" stop-color="${colors.accent}" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="${colors.bg}" stop-opacity="1"/>
-    </radialGradient>
-    <linearGradient id="shine${index}" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.03"/>
-      <stop offset="50%" stop-color="white" stop-opacity="0"/>
-      <stop offset="100%" stop-color="white" stop-opacity="0.02"/>
-    </linearGradient>
-  </defs>
-  <rect width="400" height="400" fill="${colors.bg}"/>
-  <rect width="400" height="400" fill="url(#bg${index})"/>
-  ${pattern}
-  <rect width="400" height="400" fill="url(#shine${index})"/>
-  <rect x="20" y="20" width="360" height="360" fill="none" stroke="${colors.accent}" stroke-width="1" opacity="0.3" rx="2"/>
-  <rect x="25" y="25" width="350" height="350" fill="none" stroke="${colors.accent}" stroke-width="0.5" opacity="0.15" rx="1"/>
-  <line x1="40" y1="170" x2="360" y2="170" stroke="${colors.accent}" stroke-width="0.5" opacity="0.2"/>
-  <line x1="40" y1="280" x2="360" y2="280" stroke="${colors.accent}" stroke-width="0.5" opacity="0.2"/>
-  ${artistTextEls}
-  ${titleTextEls}
-  <text x="200" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${colors.text}" opacity="0.6" letter-spacing="2">${escapeXml(genre.toUpperCase())}</text>
-  <text x="200" y="348" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666666" letter-spacing="1">${year || ''}</text>
-</svg>`;
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function main() {
@@ -137,23 +95,59 @@ async function main() {
     ORDER BY p.id
   `);
 
-  console.log(`Generating covers for ${products.length} products...`);
+  console.log(`Downloading official covers for ${products.length} products...\n`);
+
+  let success = 0;
+  let failed = 0;
 
   for (let i = 0; i < products.length; i++) {
     const p = products[i];
-    const filename = `cover-${p.id}.svg`;
+    console.log(`  [${i + 1}/${products.length}] ${p.artist} - ${p.title}`);
+
+    // Search MusicBrainz for the release
+    const releaseId = await searchMusicBrainzRelease(p.artist, p.title);
+
+    if (!releaseId) {
+      console.log(`    ✗ Not found on MusicBrainz`);
+      failed++;
+      await sleep(1100); // MusicBrainz rate limit: 1 req/sec
+      continue;
+    }
+
+    console.log(`    Found release: ${releaseId}`);
+    await sleep(1100); // Rate limit before cover art request
+
+    // Download cover art
+    const imageBuffer = await downloadCoverArt(releaseId);
+
+    if (!imageBuffer) {
+      console.log(`    ✗ No cover art available`);
+      failed++;
+      continue;
+    }
+
+    // Determine file extension from image data
+    let ext = 'jpg';
+    if (imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50) ext = 'png';
+
+    const filename = `cover-${p.id}.${ext}`;
     const filepath = path.join(uploadsDir, filename);
-    const svg = generateSVG(p.artist, p.title, p.release_year, p.genre_name || 'Heavy Metal', i);
-    fs.writeFileSync(filepath, svg);
+    fs.writeFileSync(filepath, imageBuffer);
+
+    // Remove old SVG if exists
+    const oldSvg = path.join(uploadsDir, `cover-${p.id}.svg`);
+    if (fs.existsSync(oldSvg)) fs.unlinkSync(oldSvg);
 
     await sequelize.query(`UPDATE products SET cover_image = ? WHERE id = ?`, {
       replacements: [`/uploads/${filename}`, p.id],
     });
 
-    console.log(`  [${i + 1}/${products.length}] ${p.artist} - ${p.title}`);
+    const sizeMB = (imageBuffer.length / 1024).toFixed(1);
+    console.log(`    ✓ Downloaded (${sizeMB} KB, ${ext})`);
+    success++;
   }
 
-  console.log('\nDone! All covers generated.');
+  console.log(`\nDone! ${success} covers downloaded, ${failed} failed.`);
   await sequelize.close();
 }
 
